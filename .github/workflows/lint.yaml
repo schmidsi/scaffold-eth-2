@@ -3,10 +3,10 @@ name: Lint
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   ci:
@@ -29,6 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
+
+      - name: Run hardhat node, deploy contracts (& generate contracts typescript output)
+        run: yarn chain & yarn deploy 
 
       - name: Run nextjs lint
         run: yarn next:lint --max-warnings=0

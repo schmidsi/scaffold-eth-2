@@ -1,132 +1,56 @@
 import { Network } from "@ethersproject/networks";
+import * as chains from "wagmi/chains";
+import scaffoldConfig from "~~/scaffold.config";
 
-type TChainAttributes = {
-  name: string;
+export type TChainAttributes = {
   // color | [lightThemeColor, darkThemeColor]
   color: string | [string, string];
-  chainId: number;
+  // Used to fetch price by providing mainnet token address
+  // for networks having native currency other than ETH
+  nativeCurrencyTokenAddress?: string;
 };
 
-export const NETWORKS: Record<string, TChainAttributes> = {
-  localhost: {
-    name: "localhost",
-    color: ["#666666", "#bbbbbb"],
-    chainId: 31337,
+export const NETWORKS_EXTRA_DATA: Record<string, TChainAttributes> = {
+  [chains.hardhat.id]: {
+    color: "#b8af0c",
   },
-  mainnet: {
-    name: "mainnet",
+  [chains.mainnet.id]: {
     color: "#ff8b9e",
-    chainId: 1,
   },
-  goerli: {
-    name: "goerli",
+  [chains.sepolia.id]: {
+    color: ["#5f4bb6", "#87ff65"],
+  },
+  [chains.goerli.id]: {
     color: "#0975F6",
-    chainId: 5,
   },
-  gnosis: {
-    name: "gnosis",
+  [chains.gnosis.id]: {
     color: "#48a9a6",
-    chainId: 100,
   },
-  polygon: {
-    name: "polygon",
+  [chains.polygon.id]: {
     color: "#2bbdf7",
-    chainId: 137,
+    nativeCurrencyTokenAddress: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
   },
-  mumbai: {
-    name: "mumbai",
+  [chains.polygonMumbai.id]: {
     color: "#92D9FA",
-    chainId: 80001,
+    nativeCurrencyTokenAddress: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
   },
-  localOptimismL1: {
-    name: "localOptimismL1",
+  [chains.optimismGoerli.id]: {
     color: "#f01a37",
-    chainId: 31337,
   },
-  localOptimism: {
-    name: "localOptimism",
+  [chains.optimism.id]: {
     color: "#f01a37",
-    chainId: 420,
   },
-  goerliOptimism: {
-    name: "goerliOptimism",
-    color: "#f01a37",
-    chainId: 420,
-  },
-  optimism: {
-    name: "optimism",
-    color: "#f01a37",
-    chainId: 10,
-  },
-  goerliArbitrum: {
-    name: "goerliArbitrum",
+  [chains.arbitrumGoerli.id]: {
     color: "#28a0f0",
-    chainId: 421613,
   },
-  arbitrum: {
-    name: "arbitrum",
+  [chains.arbitrum.id]: {
     color: "#28a0f0",
-    chainId: 42161,
   },
-  devnetArbitrum: {
-    name: "devnetArbitrum",
-    color: "#28a0f0",
-    chainId: 421612,
-  },
-  localAvalanche: {
-    name: "localAvalanche",
-    color: ["#666666", "#bbbbbb"],
-    chainId: 43112,
-  },
-  fujiAvalanche: {
-    name: "fujiAvalanche",
-    color: ["#666666", "#bbbbbb"],
-    chainId: 43113,
-  },
-  mainnetAvalanche: {
-    name: "mainnetAvalanche",
-    color: ["#666666", "#bbbbbb"],
-    chainId: 43114,
-  },
-  testnetHarmony: {
-    name: "testnetHarmony",
-    color: "#00b0ef",
-    chainId: 1666700000,
-  },
-  mainnetHarmony: {
-    name: "mainnetHarmony",
-    color: "#00b0ef",
-    chainId: 1666600000,
-  },
-  fantom: {
-    name: "fantom",
+  [chains.fantom.id]: {
     color: "#1969ff",
-    chainId: 250,
   },
-  testnetFantom: {
-    name: "testnetFantom",
+  [chains.fantomTestnet.id]: {
     color: "#1969ff",
-    chainId: 4002,
-  },
-  moonbeam: {
-    name: "moonbeam",
-    color: "#53CBC9",
-    chainId: 1284,
-  },
-  moonriver: {
-    name: "moonriver",
-    color: "#53CBC9",
-    chainId: 1285,
-  },
-  moonbaseAlpha: {
-    name: "moonbaseAlpha",
-    color: "#53CBC9",
-    chainId: 1287,
-  },
-  moonbeamDevNode: {
-    name: "moonbeamDevNode",
-    color: "#53CBC9",
-    chainId: 1281,
   },
 };
 
@@ -137,27 +61,58 @@ export const NETWORKS: Record<string, TChainAttributes> = {
  * @dev returns empty string if the network is localChain
  */
 export function getBlockExplorerTxLink(network: Network, txnHash: string) {
-  const { name, chainId } = network;
+  const { chainId } = network;
 
-  if (chainId === 31337 || chainId === 1337) {
-    // If its localChain then return empty sting
+  const chainNames = Object.keys(chains);
+
+  const targetChainArr = chainNames.filter(chainName => {
+    const wagmiChain = chains[chainName as keyof typeof chains];
+    return wagmiChain.id === chainId;
+  });
+
+  if (targetChainArr.length === 0) {
     return "";
   }
 
-  let blockExplorerNetwork = "";
-  if (name && chainId > 1) {
-    blockExplorerNetwork = name + ".";
+  const targetChain = targetChainArr[0] as keyof typeof chains;
+  // @ts-expect-error : ignoring error since `blockExplorers` key may or may not be present on some chains
+  const blockExplorerTxURL = chains[targetChain]?.blockExplorers?.default?.url;
+
+  if (!blockExplorerTxURL) {
+    return "";
   }
 
-  let blockExplorerBaseTxUrl = "https://" + blockExplorerNetwork + "etherscan.io/tx/";
-  if (chainId === 100) {
-    blockExplorerBaseTxUrl = "https://blockscout.com/poa/xdai/tx/";
-  }
-
-  const blockExplorerTxURL = blockExplorerBaseTxUrl + txnHash;
-
-  return blockExplorerTxURL;
+  return `${blockExplorerTxURL}/tx/${txnHash}`;
 }
 
-export const getNetworkDetailsByChainId = (chainId: number) =>
-  Object.values(NETWORKS).find(val => val.chainId === chainId);
+/**
+ * Gives the block explorer Address URL.
+ * @param network - wagmi chain object
+ * @param address
+ * @returns block explorer address URL and etherscan URL if block explorer URL is not present for wagmi network
+ */
+export function getBlockExplorerAddressLink(network: chains.Chain, address: string) {
+  const blockExplorerBaseURL = network.blockExplorers?.default?.url;
+  if (network.id === chains.hardhat.id) {
+    return `/blockexplorer/address/${address}`;
+  }
+
+  if (!blockExplorerBaseURL) {
+    return `https://etherscan.io/address/${address}`;
+  }
+
+  return `${blockExplorerBaseURL}/address/${address}`;
+}
+
+/**
+ * @returns targetNetwork object consisting targetNetwork from scaffold.config and extra network metadata
+ */
+
+export function getTargetNetwork(): chains.Chain & Partial<TChainAttributes> {
+  const configuredNetwork = scaffoldConfig.targetNetwork;
+
+  return {
+    ...configuredNetwork,
+    ...NETWORKS_EXTRA_DATA[configuredNetwork.id],
+  };
+}

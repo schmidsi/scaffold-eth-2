@@ -1,10 +1,12 @@
-import React from "react";
-
-export default function Spinner() {
+export const Spinner = ({ width, height }: { width?: string; height?: string }) => {
   return (
     <svg
       aria-hidden="true"
       className="mr-2 w-6 h-6 text-gray-200 dark:text-gray-300 animate-spin fill-primary-focus"
+      style={{
+        width,
+        height,
+      }}
       viewBox="0 0 100 101"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -18,4 +20,4 @@ export default function Spinner() {
       />
     </svg>
   );
-}
+};

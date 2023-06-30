@@ -1,10 +1,13 @@
-import { FunctionFragment } from "ethers/lib/utils";
 import { useState } from "react";
+import { FunctionFragment } from "ethers/lib/utils";
 import { useContractRead } from "wagmi";
-import { displayTxResult } from "./utilsDisplay";
-import InputUI from "./InputUI";
-import { getFunctionInputKey } from "./utilsContract";
-import { toast } from "~~/utils/scaffold-eth";
+import {
+  ContractInput,
+  displayTxResult,
+  getFunctionInputKey,
+  getParsedContractFunctionArgs,
+} from "~~/components/scaffold-eth";
+import { getTargetNetwork, notification } from "~~/utils/scaffold-eth";
 
 const getInitialFormState = (functionFragment: FunctionFragment) => {
   const initialForm: Record<string, any> = {};
@@ -22,53 +25,53 @@ type TReadOnlyFunctionFormProps = {
 
 export const ReadOnlyFunctionForm = ({ functionFragment, contractAddress }: TReadOnlyFunctionFormProps) => {
   const [form, setForm] = useState<Record<string, any>>(() => getInitialFormState(functionFragment));
-  const keys = Object.keys(form);
+  const [result, setResult] = useState<unknown>();
 
-  const {
-    data: result,
-    isFetching,
-    refetch,
-  } = useContractRead({
+  const { isFetching, refetch } = useContractRead({
+    chainId: getTargetNetwork().id,
     address: contractAddress,
     abi: [functionFragment],
     functionName: functionFragment.name,
-    args: keys.map(key => form[key]),
+    args: getParsedContractFunctionArgs(form),
     enabled: false,
     onError: error => {
-      toast.error(error.message);
+      notification.error(error.message);
     },
   });
 
   const inputs = functionFragment.inputs.map((input, inputIndex) => {
     const key = getFunctionInputKey(functionFragment, input, inputIndex);
     return (
-      <InputUI
+      <ContractInput
         key={key}
-        setForm={setForm}
+        setForm={updatedFormValue => {
+          setResult(undefined);
+          setForm(updatedFormValue);
+        }}
         form={form}
         stateObjectKey={key}
         paramType={input}
-        functionFragment={functionFragment}
       />
     );
   });
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 py-5 first:pt-0 last:pb-1">
       <p className="font-medium my-0 break-words">{functionFragment.name}</p>
       {inputs}
       <div className="flex justify-between gap-2">
         <div className="flex-grow">
-          {result ? (
+          {result !== null && result !== undefined && (
             <span className="block bg-secondary rounded-3xl text-sm px-4 py-1.5">
               <strong>Result</strong>: {displayTxResult(result)}
             </span>
-          ) : null}
+          )}
         </div>
         <button
           className={`btn btn-secondary btn-sm ${isFetching ? "loading" : ""}`}
           onClick={async () => {
-            await refetch();
+            const { data } = await refetch();
+            setResult(data);
           }}
         >
           Read 📡
