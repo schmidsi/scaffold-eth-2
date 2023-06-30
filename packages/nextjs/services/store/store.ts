@@ -1,20 +1,12 @@
 import create from "zustand";
+import { createTempSlice } from "~~/services/store/slices/tempSlice";
+import { createEthPriceSlice } from "~~/services/store/slices/ethPriceSlice";
+import { TAppStore } from "~~/services/store/storeTypes";
 
-/**
- * Zustand Store
- *
- * You can add global state to the app using this useGlobalState, to get & set
- * values from anywhere in the app.
- *
- * Think about it as a global useState.
- */
-
-type TGlobalState = {
-  nativeCurrencyPrice: number;
-  setNativeCurrencyPrice: (newNativeCurrencyPriceState: number) => void;
-};
-
-export const useGlobalState = create<TGlobalState>(set => ({
-  nativeCurrencyPrice: 0,
-  setNativeCurrencyPrice: (newValue: number): void => set(() => ({ nativeCurrencyPrice: newValue })),
+// -----------------------
+// Add those slices to the store
+// -----------------------
+export const useAppStore = create<TAppStore>()((...set) => ({
+  tempSlice: createTempSlice(...set),
+  ethPriceSlice: createEthPriceSlice(...set),
 }));

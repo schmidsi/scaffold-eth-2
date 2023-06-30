@@ -1,36 +1,30 @@
-import { hardhat } from "wagmi/chains";
+import React from "react";
 import { CurrencyDollarIcon } from "@heroicons/react/24/outline";
+import { useAppStore } from "~~/services/store/store";
 import { HeartIcon } from "@heroicons/react/24/outline";
-import { SwitchTheme } from "~~/components/SwitchTheme";
-import { Faucet } from "~~/components/scaffold-eth";
-import { useGlobalState } from "~~/services/store/store";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
+import SwitchTheme from "./SwitchTheme";
 
 /**
  * Site footer
  */
-export const Footer = () => {
-  const nativeCurrencyPrice = useGlobalState(state => state.nativeCurrencyPrice);
+export default function Footer() {
+  const ethPrice = useAppStore(state => state.ethPriceSlice.ethPrice);
 
   return (
-    <div className="min-h-0 p-5 mb-11 lg:mb-0">
+    <div className="min-h-0 p-5 flex justify-between items-center flex-col sm:flex-row gap-4">
       <div>
-        <div className="fixed flex justify-between items-center w-full z-20 p-4 bottom-0 left-0 pointer-events-none">
-          <div className="flex space-x-2 pointer-events-auto">
-            {nativeCurrencyPrice > 0 && (
-              <div className="btn btn-primary btn-sm font-normal cursor-auto">
-                <CurrencyDollarIcon className="h-4 w-4 mr-0.5" />
-                <span>{nativeCurrencyPrice}</span>
-              </div>
-            )}
-            {getTargetNetwork().id === hardhat.id && <Faucet />}
-          </div>
-          <SwitchTheme className="pointer-events-auto" />
+        <div className="fixed m-4 bottom-0 left-0">
+          {ethPrice > 0 && (
+            <div className="btn btn-primary btn-sm font-normal cursor-auto">
+              <CurrencyDollarIcon className="h-4 w-4 mr-0.5" />
+              <span>{ethPrice}</span>
+            </div>
+          )}
         </div>
       </div>
-      <div className="w-full">
-        <ul className="menu menu-horizontal w-full">
-          <div className="flex justify-center items-center gap-2 text-sm w-full">
+      <div>
+        <ul className="menu menu-horizontal px-1">
+          <div className="flex items-center gap-2 text-sm">
             <div>
               <a
                 href="https://github.com/scaffold-eth/se-2"
@@ -67,6 +61,11 @@ export const Footer = () => {
           </div>
         </ul>
       </div>
+      <div className="mr-4 text-sm">
+        <div className="fixed m-4 bottom-0 right-0">
+          <SwitchTheme />
+        </div>
+      </div>
     </div>
   );
-};
+}

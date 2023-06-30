@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useDarkMode, useIsMounted } from "usehooks-ts";
 import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
 
-export const SwitchTheme = ({ className }: { className?: string }) => {
-  const { isDarkMode, toggle } = useDarkMode();
+const SwitchTheme = () => {
+  const { isDarkMode, toggle } = useDarkMode(false);
   const isMounted = useIsMounted();
 
   useEffect(() => {
@@ -12,7 +12,7 @@ export const SwitchTheme = ({ className }: { className?: string }) => {
   }, [isDarkMode]);
 
   return (
-    <div className={`flex space-x-2 text-sm ${className}`}>
+    <div className="flex space-x-2">
       <input
         id="theme-toggle"
         type="checkbox"
@@ -29,3 +29,4 @@ export const SwitchTheme = ({ className }: { className?: string }) => {
     </div>
   );
 };
+export default SwitchTheme;

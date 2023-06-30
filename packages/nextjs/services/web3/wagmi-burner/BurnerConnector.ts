@@ -1,14 +1,14 @@
 import { StaticJsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "ethers";
-import { Chain, Connector } from "wagmi";
-import { loadBurnerSK } from "~~/hooks/scaffold-eth";
+import { Connector, Chain } from "wagmi";
+import { hardhat } from "wagmi/chains";
+import { loadBurnerSK } from "~~/hooks/scaffold-eth/useBurnerWallet";
 import { BurnerConnectorError, BurnerConnectorErrorList } from "~~/services/web3/wagmi-burner/BurnerConnectorErrors";
-import { BurnerConnectorData, BurnerConnectorOptions } from "~~/services/web3/wagmi-burner/BurnerConnectorTypes";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
+import { BurnerConnectorOptions, BurnerConnectorData } from "~~/services/web3/wagmi-burner/BurnerConnectorTypes";
 
 export const burnerWalletId = "burner-wallet";
 export const burnerWalletName = "Burner Wallet";
-export const defaultBurnerChainId = getTargetNetwork().id;
+export const defaultBurnerChainId = hardhat.id;
 
 /**
  * This class is a wagmi connector for BurnerWallet.  Its used by {@link burnerWalletConfig}
@@ -42,10 +42,13 @@ export class BurnerConnector extends Connector<StaticJsonRpcProvider, BurnerConn
 
     this.provider = new StaticJsonRpcProvider(chain.rpcUrls.default.http[0]);
     const account = await this.getAccount();
+    const chainId = await this.getChainId();
 
-    if (this.provider == null || account == null) {
+    if (this.provider == null || account == null || chainId == null) {
       throw new BurnerConnectorError(BurnerConnectorErrorList.couldNotConnect);
     }
+
+    // todo unsported chains?? should i populate unsupported param
 
     if (!account) {
       throw new BurnerConnectorError(BurnerConnectorErrorList.accountNotFound);
@@ -54,7 +57,7 @@ export class BurnerConnector extends Connector<StaticJsonRpcProvider, BurnerConn
     const data: Required<BurnerConnectorData> = {
       account,
       chain: {
-        id: chain.id,
+        id: chainId,
         unsupported: false,
       },
       provider: this.provider,
@@ -77,6 +80,11 @@ export class BurnerConnector extends Connector<StaticJsonRpcProvider, BurnerConn
   }
 
   async getAccount(): Promise<string> {
+    const accounts = await this.provider?.listAccounts();
+    if (accounts == null || accounts[0] == null) {
+      throw new BurnerConnectorError(BurnerConnectorErrorList.accountNotFound);
+    }
+
     const wallet = this.getWallet();
     const account = wallet.address;
     return account;

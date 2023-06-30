@@ -1,24 +1,26 @@
 import { useEffect, useState } from "react";
 import { useInterval } from "usehooks-ts";
 import { useProvider } from "wagmi";
-import scaffoldConfig from "~~/scaffold.config";
 import { fetchPriceFromUniswap } from "~~/utils/scaffold-eth";
 
 const enablePolling = false;
+const pollingTime = process.env.NEXT_PUBLIC_RPC_POLLING_INTERVAL
+  ? parseInt(process.env.NEXT_PUBLIC_RPC_POLLING_INTERVAL)
+  : 30_000;
 
 /**
- * Get the price of Native Currency based on Native Token/DAI trading pair from Uniswap SDK
- * @returns nativeCurrencyPrice: number
+ * Get the price of ETH based on ETH/DAI trading pair from Uniswap SDK
+ * @returns ethPrice: number
  */
-export const useNativeCurrencyPrice = () => {
+export const useEthPrice = () => {
   const provider = useProvider({ chainId: 1 });
-  const [nativeCurrencyPrice, setNativeCurrencyPrice] = useState(0);
+  const [ethPrice, setEthPrice] = useState(0);
 
   // Get the price of ETH from Uniswap on mount
   useEffect(() => {
     (async () => {
       const price = await fetchPriceFromUniswap(provider);
-      setNativeCurrencyPrice(price);
+      setEthPrice(price);
     })();
   }, [provider]);
 
@@ -26,10 +28,10 @@ export const useNativeCurrencyPrice = () => {
   useInterval(
     async () => {
       const price = await fetchPriceFromUniswap(provider);
-      setNativeCurrencyPrice(price);
+      setEthPrice(price);
     },
-    enablePolling ? scaffoldConfig.pollingInterval : null,
+    enablePolling ? pollingTime : null,
   );
 
-  return nativeCurrencyPrice;
+  return ethPrice;
 };

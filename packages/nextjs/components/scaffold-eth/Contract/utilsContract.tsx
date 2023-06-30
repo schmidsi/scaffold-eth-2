@@ -1,7 +1,35 @@
-import { Dispatch, SetStateAction } from "react";
-import { Contract, utils } from "ethers";
 import { FunctionFragment } from "ethers/lib/utils";
-import { DisplayVariable, ReadOnlyFunctionForm, WriteOnlyFunctionForm } from "~~/components/scaffold-eth";
+// ToDo. Handle when this doesn't exist?
+import ContractData from "~~/generated/hardhat_contracts.json";
+import { Contract, utils } from "ethers";
+import DisplayVariable from "~~/components/scaffold-eth/Contract/DisplayVariables";
+import { ReadOnlyFunctionForm } from "./ReadOnlyFunctionForm";
+import { WriteOnlyFunctionForm } from "./WriteOnlyFunctionForm";
+import { Dispatch, SetStateAction } from "react";
+
+type GeneratedContractType = {
+  address: string;
+  abi: any[];
+};
+
+/**
+ * @param chainId - deployed contract chainId
+ * @param contractName - name of deployed contract
+ * @returns {GeneratedContractType} object containing contract address and abi
+ */
+const getDeployedContract = (
+  chainId: string | undefined,
+  contractName: string | undefined | null,
+): GeneratedContractType | undefined => {
+  if (!chainId || !contractName) {
+    return;
+  }
+
+  const contractsAtChain = ContractData[chainId as keyof typeof ContractData];
+  const contractsData = contractsAtChain?.[0]?.contracts;
+
+  return contractsData?.[contractName as keyof typeof contractsData];
+};
 
 /**
  * @param {Contract} contract
@@ -61,17 +89,11 @@ const getContractReadOnlyMethodsWithParams = (
   return {
     methods: contract
       ? contractMethodsAndVariables
-          .map((fn, idx) => {
+          .map(fn => {
             const isQueryableWithParams =
               (fn.stateMutability === "view" || fn.stateMutability === "pure") && fn.inputs.length > 0;
             if (isQueryableWithParams) {
-              return (
-                <ReadOnlyFunctionForm
-                  key={`${fn.name}-${idx}`}
-                  functionFragment={fn}
-                  contractAddress={contract.address}
-                />
-              );
+              return <ReadOnlyFunctionForm key={fn.name} functionFragment={fn} contractAddress={contract.address} />;
             }
             return null;
           })
@@ -96,12 +118,12 @@ const getContractWriteMethods = (
   return {
     methods: contract
       ? contractMethodsAndVariables
-          .map((fn, idx) => {
+          .map(fn => {
             const isWriteableFunction = fn.stateMutability !== "view" && fn.stateMutability !== "pure";
             if (isWriteableFunction) {
               return (
                 <WriteOnlyFunctionForm
-                  key={`${fn.name}-${idx}`}
+                  key={fn.name}
                   functionFragment={fn}
                   contractAddress={contract.address}
                   setRefreshDisplayVariables={setRefreshDisplayVariables}
@@ -124,7 +146,7 @@ const getContractWriteMethods = (
  */
 const getFunctionInputKey = (functionInfo: FunctionFragment, input: utils.ParamType, inputIndex: number): string => {
   const name = input?.name || `input_${inputIndex}_`;
-  return functionInfo.name + "_" + name + "_" + input.type + "_" + input.baseType;
+  return functionInfo.name + "_" + name + "_" + input.type;
 };
 
 /**
@@ -161,42 +183,12 @@ const getParsedEthersError = (e: any): string => {
   return message;
 };
 
-/**
- * @dev Parse form input with array support
- * @param {Record<string,any>} form - form object containing key value pairs
- * @returns  parsed error string
- */
-const getParsedContractFunctionArgs = (form: Record<string, any>) => {
-  const keys = Object.keys(form);
-  const parsedArguments = keys.map(key => {
-    try {
-      const keySplitArray = key.split("_");
-      const baseTypeOfArg = keySplitArray[keySplitArray.length - 1];
-      let valueOfArg = form[key];
-
-      if (["array", "tuple"].includes(baseTypeOfArg)) {
-        valueOfArg = JSON.parse(valueOfArg);
-      } else if (baseTypeOfArg === "bool") {
-        if (["true", "1", "0x1", "0x01", "0x0001"].includes(valueOfArg)) {
-          valueOfArg = 1;
-        } else {
-          valueOfArg = 0;
-        }
-      }
-      return valueOfArg;
-    } catch (error: any) {
-      // ignore error, it will be handled when sending/reading from a function
-    }
-  });
-  return parsedArguments;
-};
-
 export {
-  getAllContractFunctions,
+  getDeployedContract,
   getContractReadOnlyMethodsWithParams,
+  getAllContractFunctions,
   getContractVariablesAndNoParamsReadMethods,
   getContractWriteMethods,
   getFunctionInputKey,
-  getParsedContractFunctionArgs,
   getParsedEthersError,
 };

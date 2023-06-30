@@ -1,65 +1,70 @@
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import {
-  braveWallet,
-  coinbaseWallet,
-  ledgerWallet,
-  metaMaskWallet,
   rainbowWallet,
+  metaMaskWallet,
+  coinbaseWallet,
   walletConnectWallet,
+  braveWallet,
+  ledgerWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { configureChains } from "wagmi";
-import * as chains from "wagmi/chains";
-import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
+import { mainnet, polygon, optimism, arbitrum, hardhat, localhost, goerli, polygonMumbai } from "wagmi/chains";
+import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
-import scaffoldConfig from "~~/scaffold.config";
 import { burnerWalletConfig } from "~~/services/web3/wagmi-burner/burnerWalletConfig";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
-
-const configuredNetwork = getTargetNetwork();
-const burnerConfig = scaffoldConfig.burnerWallet;
-
-// We always want to have mainnet enabled (ENS resolution, ETH price, etc). But only once.
-const enabledChains =
-  (configuredNetwork.id as number) === 1 ? [configuredNetwork] : [configuredNetwork, chains.mainnet];
 
 /**
- * Chains for the app
+ * chains for the app
  */
 export const appChains = configureChains(
-  enabledChains,
   [
-    jsonRpcProvider({
-      rpc: chain => {
-        if (chain.rpcUrls.alchemy?.http[0]) {
-          return {
-            http: `${chain.rpcUrls.alchemy.http[0]}/${scaffoldConfig.alchemyApiKey}`,
-          };
-        }
-        return null;
-      },
+    mainnet,
+    polygon,
+    optimism,
+    arbitrum,
+    hardhat,
+    polygon,
+    // todo replace with config instead of env
+    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [goerli, polygonMumbai] : []),
+  ],
+  [
+    alchemyProvider({
+      // ToDo. Move to .env || scaffold config
+      // This is ours Alchemy's default API key.
+      // You can get your own at https://dashboard.alchemyapi.io
+      apiKey: "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF",
+      priority: 0,
     }),
-    publicProvider(),
+    publicProvider({ priority: 1 }),
   ],
   {
     stallTimeout: 3_000,
     // Sets pollingInterval if using chain's other than local hardhat chain
-    ...(configuredNetwork.id !== chains.hardhat.id
+    ...(process.env.NEXT_PUBLIC_NETWORK !== "hardhat"
       ? {
-          pollingInterval: scaffoldConfig.pollingInterval,
+          pollingInterval: process.env.NEXT_PUBLIC_RPC_POLLING_INTERVAL
+            ? parseInt(process.env.NEXT_PUBLIC_RPC_POLLING_INTERVAL)
+            : 30_000,
         }
       : {}),
   },
 );
 
-const walletsOptions = { chains: appChains.chains, projectId: scaffoldConfig.walletConnectProjectId };
-const wallets = [
-  metaMaskWallet({ ...walletsOptions, shimDisconnect: true }),
-  walletConnectWallet(walletsOptions),
-  ledgerWallet(walletsOptions),
-  braveWallet(walletsOptions),
-  coinbaseWallet({ ...walletsOptions, appName: "scaffold-eth-2" }),
-  rainbowWallet(walletsOptions),
-];
+/**
+ * list of burner wallet compatable chains
+ */
+export const burnerChains = configureChains(
+  [localhost, hardhat],
+  [
+    alchemyProvider({
+      // ToDo. Move to .env || scaffold config
+      // This is ours Alchemy's default API key.
+      // You can get your own at https://dashboard.alchemyapi.io
+      apiKey: "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF",
+    }),
+    publicProvider(),
+  ],
+);
 
 /**
  * wagmi connectors for the wagmi context
@@ -67,6 +72,14 @@ const wallets = [
 export const wagmiConnectors = connectorsForWallets([
   {
     groupName: "Supported Wallets",
-    wallets: burnerConfig.enabled ? [...wallets, burnerWalletConfig({ chains: [appChains.chains[0]] })] : wallets,
+    wallets: [
+      metaMaskWallet({ chains: appChains.chains, shimDisconnect: true }),
+      walletConnectWallet({ chains: appChains.chains }),
+      ledgerWallet({ chains: appChains.chains }),
+      braveWallet({ chains: appChains.chains }),
+      coinbaseWallet({ appName: "scaffold-eth", chains: appChains.chains }),
+      rainbowWallet({ chains: appChains.chains }),
+      burnerWalletConfig({ chains: burnerChains.chains }),
+    ],
   },
 ]);

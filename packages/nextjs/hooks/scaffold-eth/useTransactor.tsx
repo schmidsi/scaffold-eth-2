@@ -1,29 +1,26 @@
-import { TransactionReceipt, TransactionRequest, TransactionResponse } from "@ethersproject/abstract-provider";
+import { TransactionRequest, TransactionResponse, TransactionReceipt } from "@ethersproject/abstract-provider";
 import { SendTransactionResult } from "@wagmi/core";
-import { Signer } from "ethers";
+import { BigNumber, ethers, Signer } from "ethers";
 import { Deferrable } from "ethers/lib/utils";
 import { useSigner } from "wagmi";
-import { getParsedEthersError } from "~~/components/scaffold-eth";
-import { getBlockExplorerTxLink, notification } from "~~/utils/scaffold-eth";
+import { getParsedEthersError } from "~~/components/scaffold-eth/Contract/utilsContract";
+import { getBlockExplorerTxLink, toast } from "~~/utils/scaffold-eth";
 
 type TTransactionFunc = (
   tx: Promise<SendTransactionResult> | Deferrable<TransactionRequest> | undefined,
-  options?: {
-    onBlockConfirmation?: (txnReceipt: TransactionReceipt) => void;
-    blockConfirmations?: number;
-  },
+  callback?: ((_param: any) => void) | undefined,
 ) => Promise<Record<string, any> | undefined>;
 
 /**
- * Custom notification content for TXs.
+ * Custom toast content for TXs.
  */
-const TxnNotification = ({ message, blockExplorerLink }: { message: string; blockExplorerLink?: string }) => {
+const TxnToast = ({ message, blockExplorerLink }: { message: string; blockExplorerLink?: string }) => {
   return (
     <div className={`flex flex-col ml-1 cursor-default`}>
       <p className="my-0">{message}</p>
       {blockExplorerLink && blockExplorerLink.length > 0 ? (
         <a href={blockExplorerLink} target="_blank" rel="noreferrer" className="block underline text-md">
-          check out transaction
+          checkout out transaction
         </a>
       ) : null}
     </div>
@@ -33,64 +30,70 @@ const TxnNotification = ({ message, blockExplorerLink }: { message: string; bloc
 /**
  * Runs TXs showing UI feedback.
  * @param _signer
+ * @param gasPrice
  * @dev If signer is provided => dev wants to send a raw tx.
  */
-export const useTransactor = (_signer?: Signer): TTransactionFunc => {
+export const useTransactor = (_signer?: Signer, gasPrice?: number): TTransactionFunc | undefined => {
   let signer = _signer;
   const { data } = useSigner();
   if (signer === undefined && data) {
     signer = data;
   }
 
-  const result: TTransactionFunc = async (tx, options) => {
+  const result: TTransactionFunc = async (tx, callback) => {
     if (!signer) {
-      notification.error("Wallet/Signer not connected");
-      console.error("⚡️ ~ file: useTransactor.tsx ~ error");
       return;
     }
 
-    let notificationId = null;
+    let toastId = null;
+    let transactionReceipt: TransactionReceipt | undefined;
     let transactionResponse: SendTransactionResult | TransactionResponse | undefined;
     try {
       const provider = signer.provider;
       const network = await provider?.getNetwork();
 
-      notificationId = notification.loading(<TxnNotification message="Awaiting for user confirmation" />);
+      toastId = toast.loading(<TxnToast message="Awaiting for user confirmation" />);
       if (tx instanceof Promise) {
         // Tx is already prepared by the caller
         transactionResponse = await tx;
       } else if (tx != null) {
+        // Raw tx
+        if (!tx.gasPrice) {
+          tx.gasPrice = gasPrice || ethers.utils.parseUnits("4.1", "gwei");
+        }
+        if (!tx.gasLimit) {
+          tx.gasLimit = BigNumber.from(ethers.utils.hexlify(120000));
+        }
+
         transactionResponse = await signer.sendTransaction(tx);
       } else {
         throw new Error("Incorrect transaction passed to transactor");
       }
-      notification.remove(notificationId);
+      toast.remove(toastId);
 
       const blockExplorerTxURL = network ? getBlockExplorerTxLink(network, transactionResponse.hash) : "";
 
-      notificationId = notification.loading(
-        <TxnNotification message="Waiting for transaction to complete." blockExplorerLink={blockExplorerTxURL} />,
+      toastId = toast.loading(
+        <TxnToast message="Mining transaction, Hold tight!" blockExplorerLink={blockExplorerTxURL} />,
       );
+      transactionReceipt = await transactionResponse.wait();
+      toast.remove(toastId);
 
-      const transactionReceipt = await transactionResponse.wait(options?.blockConfirmations);
-      notification.remove(notificationId);
+      toast.success(<TxnToast message="Mined successfully !" blockExplorerLink={blockExplorerTxURL} />, { icon: "🎉" });
 
-      notification.success(
-        <TxnNotification message="Transaction completed successfully!" blockExplorerLink={blockExplorerTxURL} />,
-        {
-          icon: "🎉",
-        },
-      );
-
-      if (options?.onBlockConfirmation) options.onBlockConfirmation(transactionReceipt);
+      if (transactionReceipt) {
+        if (callback != null && transactionReceipt.blockHash != null && transactionReceipt.confirmations >= 1) {
+          callback({ ...transactionResponse, ...transactionReceipt });
+        }
+      }
     } catch (error: any) {
-      if (notificationId) {
-        notification.remove(notificationId);
+      if (toastId) {
+        toast.remove(toastId);
       }
       // TODO handle error properly
-      console.error("⚡️ ~ file: useTransactor.ts ~ error", error);
+      console.error("⚡️ ~ file: useTransactor.ts ~ line 98 ~ constresult:TTransactionFunc= ~ error", error);
       const message = getParsedEthersError(error);
-      notification.error(message);
+      toast.error(message);
     }
 
     return transactionResponse;

@@ -1,10 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-// Useful for debugging. Remove when deploying to a live network.
 import "hardhat/console.sol";
-// Use openzeppelin to inherit battle-tested implementations (ERC20, ERC721, etc)
-// import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * A smart contract that allows changing a state variable of the contract and tracking the changes
@@ -15,13 +12,13 @@ contract YourContract {
 
     // State Variables
     address public immutable owner;
-    string public greeting = "Building Unstoppable Apps!!!";
+    string public purpose = "Building Unstoppable Apps!!!";
     bool public premium = false;
     uint256 public totalCounter = 0;
-    mapping(address => uint) public userGreetingCounter;
+    mapping(address => uint) public userPurposeCounter;
 
     // Events: a way to emit log statements from smart contract that can be listened to by external parties
-    event GreetingChange(address indexed greetingSetter, string newGreeting, bool premium, uint256 value);
+    event PurposeChange(address purposeSetter, string newPurpose, bool premium, uint256 value);
 
     // Constructor: Called once on contract deployment
     // Check packages/hardhat/deploy/00_deploy_your_contract.ts
@@ -38,18 +35,15 @@ contract YourContract {
     }
 
     /**
-     * Function that allows anyone to change the state variable "greeting" of the contract and increase the counters
+     * Function that allows anyone to change the state variable:purpose of the contract and increase the counters
      *
-     * @param _newGreeting (string memory) - new greeting to save on the contract
+     * @param _newPurpose (string memory) - new purpose of the contract
      */
-    function setGreeting(string memory _newGreeting) public payable {
-        // Print data to the hardhat chain console. Remove when deploying to a live network.
-        console.log("Setting new greeting '%s' from %s",  _newGreeting, msg.sender);
-
+    function setPurpose(string memory _newPurpose) public payable {
         // Change state variables
-        greeting = _newGreeting;
+        purpose = _newPurpose;
         totalCounter += 1;
-        userGreetingCounter[msg.sender] += 1;
+        userPurposeCounter[msg.sender] += 1;
 
         // msg.value: built-in global variable that represents the amount of ether sent with the transaction
         if (msg.value > 0) {
@@ -59,7 +53,7 @@ contract YourContract {
         }
 
         // emit: keyword used to trigger an event
-        emit GreetingChange(msg.sender, _newGreeting, msg.value > 0, 0);
+        emit PurposeChange(msg.sender, _newPurpose, msg.value > 0, 0);
     }
 
     /**
