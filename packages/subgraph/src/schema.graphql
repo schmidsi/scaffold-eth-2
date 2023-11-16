@@ -1,3 +1,8 @@
+type Contract @entity {
+  id: Bytes!
+  totalCounter: BigInt!
+}
+
 type Greeting @entity {
   id: ID!
   sender: Sender!

@@ -14,7 +14,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "greetingSetter",
         "type": "address"
@@ -24,18 +24,6 @@
         "internalType": "string",
         "name": "newGreeting",
         "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "premium",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "value",
-        "type": "uint256"
       }
     ],
     "name": "GreetingChange",

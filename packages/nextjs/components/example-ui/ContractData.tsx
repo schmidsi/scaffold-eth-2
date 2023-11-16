@@ -21,23 +21,52 @@ export const ContractData = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const greetingRef = useRef<HTMLDivElement>(null);
 
-  const { data: totalCounter } = useScaffoldContractRead({
-    contractName: "YourContract",
-    functionName: "totalCounter",
-  });
+  // const { data: totalCounter } = useScaffoldContractRead({
+  //   contractName: "YourContract",
+  //   functionName: "totalCounter",
+  // });
 
-  const { data: currentGreeting, isLoading: isGreetingLoading } = useScaffoldContractRead({
-    contractName: "YourContract",
-    functionName: "greeting",
-  });
+  // const { data: currentGreeting, isLoading: isGreetingLoading } = useScaffoldContractRead({
+  //   contractName: "YourContract",
+  //   functionName: "greeting",
+  // });
+
+  const GREETINGS_GRAPHQL = `
+  {
+    greetings(first: 1, orderBy: createdAt, orderDirection: desc) {
+      id
+      greeting
+      premium
+      value
+      createdAt
+      sender {
+        address
+        greetingCount
+      }
+    }
+    contracts(first: 1) {
+      id
+      totalCounter
+    }
+  }
+  `;
+
+  const GREETINGS_GQL = gql(GREETINGS_GRAPHQL);
+  const greetingsData = useQuery(GREETINGS_GQL, { pollInterval: 1000 });
+
+  console.log("greetingsData: ", greetingsData);
+
+  const currentGreeting = greetingsData?.data?.greetings[0]?.greeting;
+  const isGreetingLoading = greetingsData.loading;
+  const totalCounter = greetingsData?.data?.contracts[0]?.totalCounter;
 
   useScaffoldEventSubscriber({
     contractName: "YourContract",
     eventName: "GreetingChange",
     listener: logs => {
       logs.map(log => {
-        const { greetingSetter, value, premium, newGreeting } = log.args;
-        console.log("📡 GreetingChange event", greetingSetter, value, premium, newGreeting);
+        const { greetingSetter, newGreeting } = log.args;
+        console.log("📡 GreetingChange event", greetingSetter, newGreeting);
       });
     },
   });
@@ -70,27 +99,6 @@ export const ContractData = () => {
       );
     }
   }, [transitionEnabled, containerRef, greetingRef]);
-
-  const GREETINGS_GRAPHQL = `
-  {
-    greetings(first: 25, orderBy: createdAt, orderDirection: desc) {
-      id
-      greeting
-      premium
-      value
-      createdAt
-      sender {
-        address
-        greetingCount
-      }
-    }
-  }
-  `;
-
-  const GREETINGS_GQL = gql(GREETINGS_GRAPHQL);
-  const greetingsData = useQuery(GREETINGS_GQL, { pollInterval: 1000 });
-
-  console.log("greetingsData: ", greetingsData);
 
   return (
     <div className="flex flex-col justify-center items-center bg-[url('/assets/gradient-bg.png')] bg-[length:100%_100%] py-10 px-5 sm:px-0 lg:py-auto max-w-[100vw] ">

@@ -11,6 +11,61 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
+export class Contract extends Entity {
+  constructor(id: Bytes) {
+    super();
+    this.set("id", Value.fromBytes(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save Contract entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.BYTES,
+        `Entities of type Contract must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`
+      );
+      store.set("Contract", id.toBytes().toHexString(), this);
+    }
+  }
+
+  static loadInBlock(id: Bytes): Contract | null {
+    return changetype<Contract | null>(
+      store.get_in_block("Contract", id.toHexString())
+    );
+  }
+
+  static load(id: Bytes): Contract | null {
+    return changetype<Contract | null>(store.get("Contract", id.toHexString()));
+  }
+
+  get id(): Bytes {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set id(value: Bytes) {
+    this.set("id", Value.fromBytes(value));
+  }
+
+  get totalCounter(): BigInt {
+    let value = this.get("totalCounter");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set totalCounter(value: BigInt) {
+    this.set("totalCounter", Value.fromBigInt(value));
+  }
+}
+
 export class Greeting extends Entity {
   constructor(id: string) {
     super();
@@ -29,13 +84,21 @@ export class Greeting extends Entity {
     }
   }
 
+  static loadInBlock(id: string): Greeting | null {
+    return changetype<Greeting | null>(store.get_in_block("Greeting", id));
+  }
+
   static load(id: string): Greeting | null {
     return changetype<Greeting | null>(store.get("Greeting", id));
   }
 
   get id(): string {
     let value = this.get("id");
-    return value!.toString();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
   }
 
   set id(value: string) {
@@ -44,7 +107,11 @@ export class Greeting extends Entity {
 
   get sender(): string {
     let value = this.get("sender");
-    return value!.toString();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
   }
 
   set sender(value: string) {
@@ -53,7 +120,11 @@ export class Greeting extends Entity {
 
   get greeting(): string {
     let value = this.get("greeting");
-    return value!.toString();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
   }
 
   set greeting(value: string) {
@@ -62,7 +133,11 @@ export class Greeting extends Entity {
 
   get premium(): boolean {
     let value = this.get("premium");
-    return value!.toBoolean();
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
   }
 
   set premium(value: boolean) {
@@ -88,7 +163,11 @@ export class Greeting extends Entity {
 
   get createdAt(): BigInt {
     let value = this.get("createdAt");
-    return value!.toBigInt();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
   }
 
   set createdAt(value: BigInt) {
@@ -97,7 +176,11 @@ export class Greeting extends Entity {
 
   get transactionHash(): string {
     let value = this.get("transactionHash");
-    return value!.toString();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
   }
 
   set transactionHash(value: string) {
@@ -123,13 +206,21 @@ export class Sender extends Entity {
     }
   }
 
+  static loadInBlock(id: string): Sender | null {
+    return changetype<Sender | null>(store.get_in_block("Sender", id));
+  }
+
   static load(id: string): Sender | null {
     return changetype<Sender | null>(store.get("Sender", id));
   }
 
   get id(): string {
     let value = this.get("id");
-    return value!.toString();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
   }
 
   set id(value: string) {
@@ -138,25 +229,32 @@ export class Sender extends Entity {
 
   get address(): Bytes {
     let value = this.get("address");
-    return value!.toBytes();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
   }
 
   set address(value: Bytes) {
     this.set("address", Value.fromBytes(value));
   }
 
-  get greetings(): Array<string> | null {
-    let value = this.get("greetings");
-    if (!value || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toStringArray();
-    }
+  get greetings(): GreetingLoader {
+    return new GreetingLoader(
+      "Sender",
+      this.get("id")!.toString(),
+      "greetings"
+    );
   }
 
   get createdAt(): BigInt {
     let value = this.get("createdAt");
-    return value!.toBigInt();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
   }
 
   set createdAt(value: BigInt) {
@@ -165,10 +263,32 @@ export class Sender extends Entity {
 
   get greetingCount(): BigInt {
     let value = this.get("greetingCount");
-    return value!.toBigInt();
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
   }
 
   set greetingCount(value: BigInt) {
     this.set("greetingCount", Value.fromBigInt(value));
+  }
+}
+
+export class GreetingLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): Greeting[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<Greeting[]>(value);
   }
 }

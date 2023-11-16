@@ -30,14 +30,6 @@ export class GreetingChange__Params {
   get newGreeting(): string {
     return this._event.parameters[1].value.toString();
   }
-
-  get premium(): boolean {
-    return this._event.parameters[2].value.toBoolean();
-  }
-
-  get value(): BigInt {
-    return this._event.parameters[3].value.toBigInt();
-  }
 }
 
 export class YourContract extends ethereum.SmartContract {

@@ -3,12 +3,23 @@ import {
   YourContract,
   GreetingChange,
 } from "../generated/YourContract/YourContract";
-import { Greeting, Sender } from "../generated/schema";
+import { Contract, Greeting, Sender } from "../generated/schema";
 
 export function handleGreetingChange(event: GreetingChange): void {
   let senderString = event.params.greetingSetter.toHexString();
 
   let sender = Sender.load(senderString);
+
+  let contract = Contract.load(event.address);
+
+  if (contract === null) {
+    contract = new Contract(event.address);
+    contract.totalCounter = BigInt.fromI32(1);
+  } else {
+    contract.totalCounter = contract.totalCounter.plus(BigInt.fromI32(1));
+  }
+
+  contract.save();
 
   if (sender === null) {
     sender = new Sender(senderString);
@@ -25,8 +36,6 @@ export function handleGreetingChange(event: GreetingChange): void {
 
   greeting.greeting = event.params.newGreeting;
   greeting.sender = senderString;
-  greeting.premium = event.params.premium;
-  greeting.value = event.params.value;
   greeting.createdAt = event.block.timestamp;
   greeting.transactionHash = event.transaction.hash.toHex();
 
